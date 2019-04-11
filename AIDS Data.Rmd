@@ -1,0 +1,87 @@
+---
+title: "AIDS Data"
+author: "Jack Hanley"
+date: "April 10, 2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(message=FALSE, warning=FALSE, fig.height=2.75, fig.width=4.5, fig.align = "center")
+library(tidyverse)
+
+library(readr)
+library(broom)
+library(ggpubr)
+
+
+
+options(digits=5)
+```
+
+
+```{r Data Input, include = F, }
+
+aids <- read_csv("SP19 Biostats/AIDSdata.csv")
+
+# Change from M => 1, F => 2 to 
+#             M => 0, F => 1
+
+
+aids <- aids %>%
+    mutate(sex=replace(sex, which(sex ==1),0 )) %>%
+    mutate(sex=replace(sex, which(sex ==2),1 )) %>%
+    as.data.frame()
+
+aids <- aids %>%
+    mutate(raceth=replace(raceth, which(raceth == 1), "White Non-Hispanic" )) %>%
+    mutate(raceth=replace(raceth, which(raceth == 2), "Black Non-Hispanic" )) %>%
+    mutate(raceth=replace(raceth, which(raceth == 3), "Hispanic" )) %>%
+    mutate(raceth=replace(raceth, which(raceth == 4), "Asian Pacific Islander" )) %>%
+    mutate(raceth=replace(raceth, which(raceth == 5), "American Indian" )) %>%
+    mutate(raceth=replace(raceth, which(raceth == 6), "Other" )) %>%
+    as.data.frame()
+aids$raceth <- as.factor(aids$raceth)
+
+aids <-  aids %>% arrange(id)
+  
+
+```
+
+```{r Exploratory Data Analysis}
+
+summary(aids)
+
+aids %>% ggplot() +
+  geom_bar( aes(x = as.factor(raceth))) +
+  xlab('Race') +
+  theme(axis.text.x=element_text(angle = -45, hjust = 0))
+
+# It looks like the data is dominated by white, hispanic, and black individuals
+# 
+
+aids %>% ggplot(aes(x = time_d, y = ..density..)) +
+  geom_histogram(bins = 25) +
+  geom_density(col = 'red', lwd = 2, alpha = 0.5)
+
+# A basic histogram reveals that chance of dying seems to increase
+# exponentially over time
+
+aids %>% ggplot(aes(x = karnof)) +
+  geom_bar()
+
+# The health of the majority of the individuals of the dataset
+# 
+
+aids %>% ggplot(aes(x = karnof, y = time_d))+
+  geom_point()
+
+ggboxplot(data = aids,x = "karnof", y = "time_d", color = "karnof", palette = c("red","blue", "darkgreen", "orange"),  xlab = "", ylab = "Time to Death") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  geom_hline(yintercept = mean(aids$time_d), col = "black", lwd = 1, lty = 'dashed') # dashed line is man time to death
+
+# Regardless of initial Karnofsky score, the time to death distributions seem fairly similar.
+# Additionally, all karnof-score mean time to deaths are above the total dataset time to death.
+
+```
+
+
