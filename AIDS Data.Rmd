@@ -13,7 +13,6 @@ library(readr)
 library(broom)
 library(ggpubr)
 
-#TEST
 
 options(digits=5)
 ```
@@ -65,7 +64,8 @@ aids %>% ggplot(aes(x = time_d, y = ..density..)) +
 
 
 aids %>% ggplot(aes(x = karnof)) +
-  geom_bar()
+  geom_bar()+
+  ggtitle('Health of Individuals: Karnofsky Scores')
 
 # The health of the majority of the individuals of the dataset
 
@@ -75,7 +75,7 @@ aids %>% ggplot(aes(x = karnof, y = time_d))+
 
 ggboxplot(data = aids,x = "karnof", y = "time_d", color = "karnof", palette = c("red","blue", "darkgreen", "orange"),  xlab = "", ylab = "Time to Death") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))+
-  geom_hline(yintercept = mean(aids$time_d), col = "black", lwd = 1, lty = 'dashed') # dashed line is man time to death
+  geom_hline(yintercept = mean(aids$time_d), col = "black", lwd = 1, lty = 'dashed') # dashed line is man time-to-death
 
 
 
