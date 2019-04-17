@@ -21,7 +21,7 @@ options(digits=5)
 
 ```{r Data Input, include = F, }
 
-aids <- read_csv("SP19 Biostats/AIDSdata.csv")
+aids <- read_csv("AIDSdata.csv")
 
 # Change from M => 1, F => 2 to 
 #             M => 0, F => 1
@@ -56,21 +56,19 @@ aids %>% ggplot() +
   xlab('Race') +
   theme(axis.text.x=element_text(angle = -45, hjust = 0))
 
-# It looks like the data is dominated by white, hispanic, and black individuals
-# 
+
 
 aids %>% ggplot(aes(x = time_d, y = ..density..)) +
   geom_histogram(bins = 25) +
   geom_density(col = 'red', lwd = 2, alpha = 0.5)
 
-# A basic histogram reveals that chance of dying seems to increase
-# exponentially over time
+
 
 aids %>% ggplot(aes(x = karnof)) +
   geom_bar()
 
 # The health of the majority of the individuals of the dataset
-# 
+
 
 aids %>% ggplot(aes(x = karnof, y = time_d))+
   geom_point()
@@ -79,9 +77,14 @@ ggboxplot(data = aids,x = "karnof", y = "time_d", color = "karnof", palette = c(
   theme(axis.text.x = element_text(angle = 45, hjust = 1))+
   geom_hline(yintercept = mean(aids$time_d), col = "black", lwd = 1, lty = 'dashed') # dashed line is man time to death
 
-# Regardless of initial Karnofsky score, the time to death distributions seem fairly similar.
-# Additionally, all karnof-score mean time to deaths are above the total dataset time to death.
+
 
 ```
 
+It looks like the data is dominated by white, hispanic, and black individuals.
+A basic histogram also reveals that the chance of dying seems to increase
+exponentially over time.
+
+Regardless of initial Karnofsky score, the time to death distributions seem fairly similar.
+Additionally, all karnof-score mean time-to-deaths are above the total dataset time-to-death.
 
