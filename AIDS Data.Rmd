@@ -88,3 +88,16 @@ exponentially over time.
 Regardless of initial Karnofsky score, the time to death distributions seem fairly similar.
 Additionally, all karnof-score mean time-to-deaths are above the total dataset time-to-death.
 
+#Something New
+
+Topic: Bootstrapping the Survival Model
+
+Bootstrapping is essentially the resampling with replacement of our data. Although we have a decently large sample size of 851, we have very few Asian or American Indian representatives. By bootstrapping to increase our sample size we will hope to have a more representative dataset to model on; this will ideally reduce the standard errors of our survival model. For our bootstrapping inference to be accurate, we need our current sample to be a random sample from the population we want to make inferences about.
+
+Although I do have some experience learning about bootstrapping through MATH 152: Statistical Theory, I have never implemented a bootsrapping algorithm. When learning to apply something new, it can be challenging to 
+
+Possible Resources:
+
+Functions like `censboot` in the `boot` package (documentatino for `boot` package)
+
+For bootstrapping to be an effective method, we 
