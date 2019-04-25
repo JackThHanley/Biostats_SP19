@@ -93,7 +93,7 @@ exponentially over time.
 Regardless of initial Karnofsky score, the time to death distributions seem fairly similar.
 Additionally, all karnof-score mean time-to-deaths are above the total dataset time-to-death.
 
-<<<<<<< HEAD
+
 ```{r Data Cleaning}
 
 for( x in c(1:9,11:dim(aids)[2]) ){
@@ -148,7 +148,7 @@ library(verification)
 
 
 ```
-=======
+
 #Something New
 
 Topic: Bootstrapping the Survival Model
@@ -166,5 +166,5 @@ General bootstraping:
 https://www.statmethods.net/advstats/bootstrapping.html
 
 
->>>>>>> e147e9e7b318a3625305345bcc63f3a9de38f741
+
 
