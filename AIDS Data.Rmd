@@ -1,7 +1,7 @@
 ---
-title: "AIDS Data"
+title: "AIDS Data Analysis: Rough Draft"
 author: "Jack Hanley"
-date: "April 10, 2019"
+date: "April 26, 2019"
 output: pdf_document
 ---
 
@@ -12,7 +12,12 @@ library(tidyverse)
 library(readr)
 library(broom)
 library(ggpubr)
+library(boot)
 
+# For Analysis
+
+library(survival)
+library(survminer)
 
 options(digits=5)
 ```
@@ -87,4 +92,59 @@ exponentially over time.
 
 Regardless of initial Karnofsky score, the time to death distributions seem fairly similar.
 Additionally, all karnof-score mean time-to-deaths are above the total dataset time-to-death.
+
+```{r Data Cleaning}
+
+for( x in c(1:9,11:dim(aids)[2]) ){
+  
+  title = colnames(aids)[x]
+  
+  hist(aids[,x], main = title)
+  
+  
+}
+
+
+```
+
+Notes: 
+
+- Even though `txgrp` is listed as having 4 possible indicators, only two indicators, the ones for ZDV + 3TC and ZDV + 3TC + IDV, are used
+
+- $84.25$% of participants in the study are male
+
+- At time of entering study, no particpant claimed to be currently using IV drugs (only "Never" or "Previous")
+
+- 
+
+```{r Preliminary Modeling}
+
+fit1 <- 
+
+```
+
+
+```{r ROC/AUC Analysis}
+
+library(verification)
+
+# roc.area(obs, pred)
+
+```
+
+```{r Possible Boosting via Concordance Index}
+
+
+
+```
+
+
+```{r Something New: Bootstrap}
+
+# Prelim Code : https://thestatsgeek.com/2013/07/02/the-miracle-of-the-bootstrap/
+
+# bs <- boot(data, func, R = 5000  stype)
+
+
+```
 
