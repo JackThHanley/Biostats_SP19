@@ -329,9 +329,23 @@ Unfortunately, from the output of `cox.zph`, we can see that the Proportional Ha
 
 ## Background
 
-[^2]
+### What is Boosting?
+The basic idea of boosting as a regression tool is crowdsourcing. With boosting, you essentially use a bunch of poor learners, such as simple linear regression or a simple regression tree to fit your data. Since these are simple learners, any signficant results you get are almost certainly indicative of signal rather than noise. Therefore, when lots of these simple learners are saying the same thing, we have a pretty good idea that what they're saying is signal. 
 
-[^2]: Gradient Boosting Survival Analysis: https://www.hindawi.com/journals/cmmm/2013/873595/
+On a more applied level, we use the findings of each of these 'dumb' learners by incorporating the residuals into the model. This process of first making a model, modeling the residuals, and then creating a new model can be generalized in the following format [^2]: $$ F_1(x) = y $$ $$h_1(x) = y - F_1(x)$$ $$F_2(x) = F_1(x) + h_1(x)$$
+
+This process can then be generalized for as many estimations as you want. 
+
+
+[^2]: Boosting information http://blog.kaggle.com/2017/01/23/a-kaggle-master-explains-gradient-boosting/
+
+### What is Gradient Boosting in the context of Survival Analysis?
+
+Although the $h_m(x)$ function in the boosting algorithm above does not specify what type of learner is required (a powerful feature), survival analysis is different. For starters, we do not have residuals in Survival Analysis, and our data can be heavily right-censored. Gradient Boosting of Survival Analysis is therefore not a trivial application. Additionally, our prediction given new data is a hazard function. Rather than residuals though, Gradient Boosting of Survival Analysis accepts theses differences and instead attempts to optimize an approximation of concordance index.
+
+Although the concordance index is a discrete value, it cannot be optimized directly. Instead, a smoothed concordance index is approximated by adopting a logistic sigmoid function. While this makes the function differentiable, the function is neither convex nor concave, and can lead to varying local optima.[^3]
+
+[^3]: Gradient Boosting Survival Analysis: https://www.hindawi.com/journals/cmmm/2013/873595/
 
 ## Implementation
 ```{python, echo = FALSE}
