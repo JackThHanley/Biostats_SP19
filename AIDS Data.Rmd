@@ -6,7 +6,8 @@ output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(message=FALSE, warning=FALSE, fig.height=2.75, fig.width=4.5, fig.align = "center")
+knitr::opts_chunk$set(message=FALSE, warning=TRUE, fig.height=2.75, fig.width=4.5, fig.align = "center")
+
 
 library(tidyverse)
 
@@ -15,21 +16,38 @@ library(broom)
 library(ggpubr)
 library(boot)
 
-# For Analysis
 
-library(survival)
-library(survminer)
+
+# For assessment
+
+library(pec)
+
+# For Python
+
+library(reticulate)
+sksurv <- import('sksurv')
+# py_config() gut check
+# Need to have updated versions of sklearn, numpy, pandas, etc.
+
+
 
 options(digits=5)
+
+
 ```
 
 
-```{r Data Input, include = F, }
+# Introduction
+
+
+
+```{r Data Input, include = F }
 
 aids <- read_csv("AIDSdata.csv")
 
 # Change from M => 1, F => 2 to 
 #             M => 0, F => 1
+
 
 
 aids <- aids %>%
@@ -50,11 +68,23 @@ aids$raceth <- as.factor(aids$raceth)
 aids <-  aids %>% arrange(id)
   
 
+aids$tx <- as.factor(aids$tx)
+aids$txgrp <- as.factor(aids$txgrp)
+aids$strat2 <- as.factor(aids$strat2)
+aids$sex <- as.factor(aids$sex)
+aids$ivdrug <- as.factor(aids$ivdrug)
+aids$hemophil <- as.factor(aids$hemophil)
+aids$karnof <- as.factor(aids$karnof)
+
+aids_py <- aids
+aids_py$censor <- as.factor(aids_py$censor)
+aids_py$censor_d <- as.factor(aids_py$censor_d)
+
 ```
 
-```{r Exploratory Data Analysis}
+# Exploratory Data Analysis
+```{r Exploratory Data Analysis, echo = F}
 
-summary(aids)
 
 aids %>% ggplot() +
   geom_bar( aes(x = as.factor(raceth))) +
@@ -62,149 +92,333 @@ aids %>% ggplot() +
   theme(axis.text.x=element_text(angle = -45, hjust = 0))
 
 
-
-aids %>% ggplot(aes(x = time_d, y = ..density..)) +
-  geom_histogram(bins = 25) +
-  geom_density(col = 'red', lwd = 2, alpha = 0.5)
-
-
-
-aids %>% ggplot(aes(x = karnof)) +
-  geom_bar()+
-  ggtitle('Health of Individuals: Karnofsky Scores')
-
 # The health of the majority of the individuals of the dataset
-
-
-aids %>% ggplot(aes(x = karnof, y = time_d))+
-  geom_point()
 
 ggboxplot(data = aids,x = "karnof", y = "time_d", color = "karnof", palette = c("red","blue", "darkgreen", "orange"),  xlab = "", ylab = "Time to Death") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))+
   geom_hline(yintercept = mean(aids$time_d), col = "black", lwd = 1, lty = 'dashed') # dashed line is man time-to-death
 
+#Factor
+
+aids %>%
+  ggplot(aes(x = txgrp))+
+  geom_bar()
+
+
+aids %>%
+  ggplot(aes(x = ivdrug))+
+  geom_bar()
+
+aids %>%
+  ggplot(aes(x = karnof))+
+  geom_bar()
+
+#Continuous
+aids %>%
+  ggplot(aes(x = cd4))+
+    geom_density(data = subset(aids, censor == 1), fill = 'red', alpha = 0.5) +
+    geom_density(data = subset(aids, censor == 0), fill = 'blue', alpha = 0.5) + 
+    labs(caption = "RED: AIDS defining diagnosis/death | BLUE: Otherwise")+
+    theme(plot.caption = element_text(hjust = 0.5)) +
+    annotate("text", x = 250, y = .015, label = "RED: 69") +
+    annotate("text", x = 250, y = .01, label = "BLUE: 780")
+
+aids %>%
+  ggplot(aes(x = age))+
+    geom_density(data = subset(aids, censor == 1), fill = 'red', alpha = 0.5) +
+    geom_density(data = subset(aids, censor == 0), fill = 'blue', alpha = 0.5) + 
+    labs(caption = "RED: AIDS defining diagnosis/death | BLUE: Otherwise")+
+    theme(plot.caption = element_text(hjust = 0.5)) +
+    annotate("text", x = 60, y = .05, label = "RED: 69") +
+    annotate("text", x = 60, y = .04, label = "BLUE: 780")
+
+aids %>%
+  ggplot(aes(x = priorzdv))+
+    geom_density(data = subset(aids, censor == 1), fill = 'red', alpha = 0.5) +
+    geom_density(data = subset(aids, censor == 0), fill = 'blue', alpha = 0.5) + 
+    labs(caption = "RED: AIDS defining diagnosis/death | BLUE: Otherwise")+
+    theme(plot.caption = element_text(hjust = 0.5)) +
+    annotate("text", x = 200, y = .02, label = "RED: 69") +
+    annotate("text", x = 200, y = .01, label = "BLUE: 780 ")
+
+aids %>%
+  group_by(ivdrug) %>%
+    count(censor)
+
+```
+
+```{r Death Counts By Factor, include=FALSE}
+
+
+aids %>%
+  group_by(tx) %>%
+    count(censor)
+
+aids %>%
+  group_by(txgrp) %>%
+    count(censor)
+
+aids %>%
+  group_by(strat2) %>%
+    count(censor)
+
+aids %>%
+  group_by(sex) %>%
+    count(censor)
+
+aids %>%
+  group_by(raceth) %>%
+    count(censor)
+
+aids %>%
+  group_by(ivdrug) %>%
+    count(censor)
+
+aids %>%
+  group_by(hemophil) %>%
+    count(censor)
+
+aids %>%
+  group_by(karnof) %>%
+    count(censor)
+
+```
+
+## Overview of Variables
+Before we begin any form of modeling, it is important to first get a better understanding of the data at our disposal through the use of exploratory data analysis. Through exploratory data analysis, we can get a sense of how our variables are distributed and if there are any clear outliers.
+
+Looking at the `raceth` variable, it appears that the data is dominated by white, hispanic, and black individuals. Despite this, each racial group sees at least one death in `censor`. Although we cannot use this study to generalize for American Indian and Asian Pacific-Islander populations, no other aspects of their observations are out of the ordinary and should be left in the dataset.
+
+The same cannot be said of the `ivdrug` variable, which indicates the degree to which the participant used IV drugs (never, in the past, or currently using). Only two individuals out of the entire dataset. The lack of any deaths/diagnoses in this group will screw up any proportional hazards assumptions that would be necessary to construct a Cox Proportional Hazards model. With the implications for a possible COx PH model and the lack of event instances (neither `censor` nor `censor_d`) in mind, I will be removing these observations. Outside of `ivdrug = 2`, all factors have at least one instance of each event ( `censor` or `censor_d` equal to 1 and 0).
+
+```{r Filter out IV, include=FALSE}
+
+aids <-  aids %>%
+            filter(ivdrug != 2)
+
+```
+
+```{r Sex Pie Chart, echo = FALSE}
+
+df <- data.frame(
+  group = c("Male", "Female"),
+  value = c(715,134)
+  )
+
+
+bp <- ggplot(df, aes(x = "", y = value, fill = group))+
+      geom_bar(width = 1, stat = "identity")
+
+pie <- bp + coord_polar("y", start=0)
+
+pie + theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank()) +
+        ggtitle('Gender Breakdown')
 
 
 ```
 
-It looks like the data is dominated by white, hispanic, and black individuals.
-A basic histogram also reveals that the chance of dying seems to increase
-exponentially over time.
+Another variable of interest is `sex`. Approximately 84% of individuals in the study are male. From the CDC, 76% of all United States adults with HIV were male, so while this number is high, it is not unrealistic [^1]. It does, however, limit our ability to make inferences about female HIV individuals. Any results of our models will likely be generalizable to male adult HIV victims, but less so for female adult HIV victims.
 
-Regardless of initial Karnofsky score, the time to death distributions seem fairly similar.
-Additionally, all karnof-score mean time-to-deaths are above the total dataset time-to-death.
+[^1]: CDC stat from https://www.cdc.gov/hiv/group/gender/men/index.html
+
+Health of the individual seems like it should play a role as well. This is represented by the indivdual's Karnofsky Performance Score in the variable `karnof`. Values range from 70: Cares for self; normal activity/ active work not possible,
+
+to 100: Normal;no complaint no evidence of disease. However, regardless of initial Karnofsky score, the time to death distributions seem fairly similar.
+Additionally, all karnof-score mean time-to-events are above the total dataset time-to-event.
 
 
-```{r Data Cleaning}
+Other Notes of Interest:
 
-for( x in c(1:9,11:dim(aids)[2]) ){
+- Even though `txgrp` is listed as having 4 possible indicators in the study documentation, only two indicators, the ones for ZDV + 3TC and ZDV + 3TC + IDV, are used.
+
+- The max of`priorzdv` is 288, with the next closest value at 172. This indicates that the individual was using open label zidovudine (ZDV) for exactly 24 years prior. This could potentially be an outlier, but there is no precedent for a reasonable length of time to be taking ZDV outside of the study. The individual was left in the dataset.
+
+- All continuous variables in the dataset, `age`, `priorzdv`, and `cd4` are skewed left, with both `priorzdv`, and `cd4` heavily skewed. This suggests that they may need to be transformed for modeling purposes.
+
+#Preliminary Modeling
+
+Now that we have given ourselves a sense of what our data looks like and what our results might imply, we can begin some preliminary modeling.
+
+Since there are more events in `censor` than `censor_d`, and therefore likely contain more information, we will be using it along with `time` in our models. We start off with a full model `cox1 <- coxph(Surv(time, censor) ~ tx + txgrp + strat2 + sex + raceth  + ivdrug + hemophil + karnof + cd4 + priorzdv + age, data = aids)`, then use `stepAIC` from the MASS package to get a general sense of what kind of variables stay in the model. The output, is `aic.cox`: `coxph(formula = Surv(time, censor) ~ tx + ivdrug + karnof + cd4 + age, data = aids)`. From this point, we will use the likelihood ratio test to see if we can eliminate any other superfluous variables. Comparing `aic.cox` and ` cox2: coxph(formula = Surv(time, censor) ~ tx + karnof + cd4, data = aids)` gives us an LRT p-value of 0.09. Although it is close, we cannot reject the null, and are therefore ok with dropping the `sex` and `ivdrug` variables. 
+
+
+```{r Preliminary Modeling, echo =F}
+
+
+# Set up k-fold cross-validation
+library(caret)
+set.seed(47)
+flds <- createFolds(aids$time, k = 10, list = TRUE, returnTrain = FALSE)
+
+# For Analysis
+library(survival)
+library(survminer)
+
+# Stepwise
+library(MASS)
+
+test <- aids[flds[[1]],]
+
+index <-c()
+for( i in 2:10){
   
-  title = colnames(aids)[x]
-  
-  hist(aids[,x], main = title)
-  
+  index <- c(index, flds[[i]])
   
 }
 
-
-```
-
-Notes: 
-
-- Even though `txgrp` is listed as having 4 possible indicators, only two indicators, the ones for ZDV + 3TC and ZDV + 3TC + IDV, are used
-
-- $84.25$% of participants in the study are male
-
-- At time of entering study, no particpant claimed to be currently using IV drugs (only "Never" or "Previous")
-
-- Possible error data point with value of 288 `priorzdv` (max)
-
-- age is right skewed
-
-```{r Preliminary Modeling}
+train <- aids[index,]
 
 
-```
+cox1 <- coxph(Surv(time, censor) ~ tx + txgrp + strat2 + sex + raceth  + ivdrug + hemophil + karnof + cd4 + priorzdv + age, data = aids)
 
+v <- stepAIC(cox1, direction = 'both',trace = FALSE)
 
-```{r ROC/AUC Analysis}
+aic.cox <- coxph(formula = Surv(time, censor) ~ tx + ivdrug + 
+    karnof + cd4 + age, data = aids)
 
-library(verification)
+# summary(aic.cox) #age and ivdrug least signficnant
 
-# roc.area(obs, pred)
+cox2 <- coxph(formula = Surv(time, censor) ~ tx + karnof + cd4, data = aids) #no age, iv
 
-```
+a <- aic.cox$loglik[2]
 
-```{r Possible Boosting via Concordance Index}
+b <- cox2$loglik[2]
 
-# Could also try CVing to maximise concordance index
+# 1 - pchisq(2*(a-b),2)
 
-set.seed(47)
-age <- rnorm(100, 50, 10)
-sex <- sample(0:1, 100, replace=TRUE)
-stime <- rexp(100)
-cens   <- runif(100,.5,2)
-sevent  <- as.numeric(stime <= cens)
-stime <- pmin(stime, cens)
-strat <- sample(1:3, 100, replace=TRUE)
-weight <- runif(100, min=0, max=1)
-comppairs <- 10
-concordance.index(x=age, 
-                  surv.time=stime, 
-                  surv.event=sevent, 
-                  strat=strat,
-                  weights=weight, 
-                  method="noether", 
-                  comppairs=comppairs)
-## is age predictive of sex?
-concordance.index(x=age, cl=sex, strat=strat, method="noether")
+cox3 <- coxph(formula = Surv(time, censor) ~ 
+    karnof + cd4      , data = aids) #no karnof
 
+c <- cox3$loglik[2]
 
-preds # Some vector of risk predictions
+cox4 <- coxph(formula = Surv(time, censor) ~ tx +
+    cd4      , data = aids) #no age, iv
+d <- cox4$loglik[2]
 
-# stime <- aids$time
+cox4 <- coxph(formula = Surv(time, censor) ~ tx +
+    karnof       , data = aids) #no age, iv
+e <- cox5$loglik[2]
 
-# sevent <- aids$censor
+#1 - pchisq(2*(b-c),1)
+#1 - pchisq(2*(b-d),1)
+#1 - pchisq(2*(b-e),1)
 
-weight <- runif(length(preds), min = 0, max = 1)
-
-comppairs <- 10 #??????
-
-# strat <- whatever the strat is? not sure
-
-
-
-
+summary(cox2)
 ```
 
 
-```{r Something New: Bootstrap}
+At this point, we none of the LRTs for dropping any of the remaining variables were unsignificant, so we do not feel comfortable dropping them. Our final model is therefore:
+`cox2 : coxph(formula = Surv(time, censor) ~ tx + karnof + cd4, data = aids)`
 
-# Prelim Code : https://thestatsgeek.com/2013/07/02/the-miracle-of-the-bootstrap/
+```{r, echo = F}
+cox.zph(cox2)
 
-# bs <- boot(data, func, R = 5000  stype)
+#Log-Rank
+#survdiff(Surv(time, censor) ~ tx + karnof + cd4, data = aids, rho = 0)
 
+#Wilcoxon
+#survdiff(Surv(time, censor) ~ tx + karnof + cd4, data = aids, rho = 1)
+```
+
+Unfortunately, from the output of `cox.zph`, we can see that the Proportional Hazards assumption is not one we can really make, considering the high p-values for each of the variables in our model. While it's certainly possible that the model could perform well with predicting survival, we cannot interpret any of our coefficients in the context of a Porportional Hazards model. However, both the Log-Rank and Wolcoxon tests proved significant, lending to the fact that our model may indeed have some merit. 
+
+
+#Something New: Gradient Boosting via Concordance Index
+
+## Background
+
+[^2]
+
+[^2]: Gradient Boosting Survival Analysis: https://www.hindawi.com/journals/cmmm/2013/873595/
+
+## Implementation
+```{python, echo = FALSE}
+import sksurv
+
+import pandas as pd
+import numpy as np
+
+# import matplotlib.pyplot as plt
+from sklearn.model_selection import ShuffleSplit, GridSearchCV
+from sksurv.preprocessing import OneHotEncoder
+
+from sksurv.column import encode_categorical
+
+from sksurv.metrics import concordance_index_censored
+from sksurv.ensemble import GradientBoostingSurvivalAnalysis
+
+
+# Data Setup
+data = r.aids_py
+
+data_cat = data[['tx', 'txgrp', 'strat2', 'sex', 'raceth','ivdrug','hemophil','karnof']]
+data_cont = data[['cd4','priorzdv','age']]
+
+x1 = encode_categorical(data_cat)
+x2 = data_cont
+
+x = pd.concat([x1,x2], axis=1, sort = False)
+
+#x = x[['cd4', 'priorzdv', 'age','karnof=80','karnof=90','karnof=100']]
+
+y_aids = data[['censor','time']]
+y_death = data[['censor_d','time_d']]
+
+y_aids.columns = ['censor', 'time_to_event']
+y_death.columns = ['censor', 'time_to_event']
+
+y_death = y_death.replace(['0','1'], [False,True])
+
+y_aids = y_aids.replace(['0','1'], [False,True])
+
+
+# Model Building
+
+t = np.array((y_aids.iloc[0][0],y_aids.iloc[0][1]), dtype=[('censor','bool'),('time_to_event','int64')])
+
+for i in np.arange(1,len(y_aids)):
+  censor = y_aids.iloc[i][0]
+  time = y_aids.iloc[i][1]
+  
+  array = np.array((censor,time), dtype=[('censor','bool'),('time_to_event','int64')] )
+  
+  
+  if array.size > 0:
+    t = np.vstack((t,array))
+  
+
+
+estimator = GradientBoostingSurvivalAnalysis(learning_rate=0.01, n_estimators=200, criterion='friedman_mse', verbose=1)
+
+train_y = t[0:700]
+test_y = t[700:]
+
+train_x_numeric = OneHotEncoder().fit_transform(x[:700])
+test_x_numeric = OneHotEncoder().fit_transform(x[700:])
+
+s = estimator.fit(train_x_numeric, train_y)
+
+#train_x_numeric.columns
+
+#feat_imp = np.array()
+
+prediction = s.predict(test_x_numeric)
+result = concordance_index_censored(np.squeeze((test_y["censor"])), np.squeeze((test_y["time_to_event"])), prediction)
+print("\nConcordance w/ Predictions:\n")
+result[0]
+
+#estimator.feature_importances_
+print("\nFEATURE IMPORTANCE:\n")
+for i in np.arange(0, len(estimator.feature_importances_)):
+  print(str(train_x_numeric.columns[i]) +"  ==  "+ str(estimator.feature_importances_[i]))
 
 ```
 
-#Something New
 
-Topic: Bootstrapping the Survival Model
-
-Bootstrapping is essentially the resampling with replacement of our data. Although we have a decently large sample size of 851, we have very few Asian or American Indian representatives. To be able to make inferences from our bootstrapped samples, we need our current sample to be a random sample from the population we want to make inferences about. With 851 subjects, we are also in a great position to effectively bootstrap. By bootstrapping to increase our sample size we will hope to have a more representative dataset to model on; this will ideally reduce the standard errors of our survival model. 
-
-Although I do have some experience learning about bootstrapping through MATH 152: Statistical Theory, I have never implemented a bootsrapping algorithm. When learning to apply a new statistical concept, it can be challenging to deal with roadblocks and coding issues. Since it's new, you may not know troubleshooting sources. This further stresses the importance and value of finding reliable resources, both to learn the initial concept and to help deal with any potential roadblocks that may come up.
-
-Possible Resources:
-
-Functions like `censboot` in the `boot` package (documentatino for `boot` package)
-
-General bootstraping:
-
-https://www.statmethods.net/advstats/bootstrapping.html
-
-
-
+As we can see with the  output of the model, the loss at each stage/concordance leave much to be desired. Intererstingly, though, the model is indicating that the most signal is coming from `cd4`, which was the most signficant variable in our Cox PH model. 
+It's likely that this method could create a viable model, but better feature selection/manipulation may be needed.
 
 
 
