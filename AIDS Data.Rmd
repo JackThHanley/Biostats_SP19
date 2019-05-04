@@ -39,6 +39,11 @@ options(digits=5)
 
 # Introduction
 
+The data for this analysis comes from the study A Controlled Trial of Two Nucleoside Analogues plus Indinavir in Persons with Human Immunodeficiency Virus Infection and CD4 Cell Counts of 200 per Cubic Millimeter or Less by Hammer et al. The principal outcome measure was the time from entering the trial to AIDS defining event (diagnosis) or death. Using this data collected, I will attempt to fit a Cox PH model to help predict the survival of individuals with AIDS given their use antiretroviral drugs such as indinavir (IDV), open label zidovudine (ZDV), stavudine (d4T) and lamivudine (3TC). [^0]
+
+[^0]: For more information, visit: https://clinicaltrials.gov/ct2/show/NCT00000841 and http:
+//www.nejm.org/doi/full/10.1056/NEJM199709113371101
+
 
 
 ```{r Data Input, include = F }
@@ -310,7 +315,7 @@ summary(cox2)
 
 
 At this point, we none of the LRTs for dropping any of the remaining variables were unsignificant, so we do not feel comfortable dropping them. Our final model is therefore:
-`cox2 : coxph(formula = Surv(time, censor) ~ tx + karnof + cd4, data = aids)`
+`cox2 : coxph(formula = Surv(time, censor) ~ tx + karnof + cd4, data = aids)`. It should also be noted that only one of our variables indiating which drug was used by the individuals was included in the final model (`tx`).
 
 ```{r, echo = F}
 cox.zph(cox2)
