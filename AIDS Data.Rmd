@@ -6,7 +6,7 @@ output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(message=FALSE, warning=TRUE, fig.height=2.75, fig.width=4.5, fig.align = "center")
+knitr::opts_chunk$set(message=FALSE, warning=TRUE, fig.height=2.4, fig.width=5, fig.align = "center")
 
 
 library(tidyverse)
@@ -89,7 +89,7 @@ aids_py$censor_d <- as.factor(aids_py$censor_d)
 
 # Exploratory Data Analysis
 ```{r Exploratory Data Analysis, echo = F}
-
+library(knitr)
 
 aids %>% ggplot() +
   geom_bar( aes(x = as.factor(raceth))) +
@@ -146,9 +146,11 @@ aids %>%
     annotate("text", x = 200, y = .02, label = "RED: 69") +
     annotate("text", x = 200, y = .01, label = "BLUE: 780 ")
 
-aids %>%
+iv_tab <- aids %>%
   group_by(ivdrug) %>%
     count(censor)
+
+kable(iv_tab) 
 
 ```
 
@@ -302,7 +304,7 @@ cox4 <- coxph(formula = Surv(time, censor) ~ tx +
     cd4      , data = aids) #no age, iv
 d <- cox4$loglik[2]
 
-cox4 <- coxph(formula = Surv(time, censor) ~ tx +
+cox5 <- coxph(formula = Surv(time, censor) ~ tx +
     karnof       , data = aids) #no age, iv
 e <- cox5$loglik[2]
 
