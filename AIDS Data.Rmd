@@ -413,6 +413,29 @@ for i in np.arange(1,len(y_aids)):
 
 estimator = GradientBoostingSurvivalAnalysis(learning_rate=0.01, n_estimators=200, criterion='friedman_mse', verbose=1)
 
+'''
+Code that didn't work
+
+estimator = GradientBoostingSurvivalAnalysis()
+'''
+
+
+#  from sklearn.model_selection import GridSearchCV
+  
+#  def score_survival_model(model, X, y):
+#      prediction = model.predict(X)
+#      result = concordance_index_censored(y['Status'], y['Survival_in_days'], prediction)
+#      return result[0]
+#  param_grid = {'learning_rate':np.array(0.01,0.050.1)}
+#  cv = ShuffleSplit(n_splits=200, test_size=0.3, random_state=0)
+#  gcv = GridSearchCV(estimator, param_grid, scoring=score_survival_model,
+#                     n_jobs=4, iid=False, refit=False,
+#                     cv=cv)
+                     
+#  import warnings
+#  warnings.filterwarnings("ignore", category=UserWarning)
+#  gcv = gcv.fit(x, y)                   
+
 train_y = t[0:700]
 test_y = t[700:]
 
